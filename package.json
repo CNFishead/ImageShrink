@@ -1,0 +1,17 @@
+{
+  "name": "image-shrink",
+  "version": "1.0.0",
+  "description": "App to resize images",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "dev": "nodemon --exec electron ."
+  },
+  "author": "Austin Howard",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^18.1.0",
+    "nodemon": "^2.0.15"
+  }
+}
