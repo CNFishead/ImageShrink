@@ -1,7 +1,21 @@
-const { app, BrowserWindow, Menu, globalShortcut } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  globalShortcut,
+  ipcMain,
+  shell,
+} = require("electron");
+const path = require("path");
+const os = require("os");
+const imagemin = require("imagemin");
+const imageminPngquant = require("imagemin-pngquant");
+const imageminMozjpeg = require("imagemin-mozjpeg");
+const slash = require("slash");
+const log = require("electron-log");
 
 // find the enviornment we are working in.
-process.env.NODE_ENV = "development";
+process.env.NODE_ENV = "production";
 const isDev = process.env.NODE_ENV !== "production" ? true : false;
 
 // find the platform we are using.
@@ -13,15 +27,22 @@ let aboutWindow;
 const createMainWindow = () => {
   mainWindow = new BrowserWindow({
     title: "Image Shrink",
-    width: 500,
+    width: isDev ? 800 : 500,
     height: 600,
     // cannot be relative, must be absolute path
     icon: `${__dirname}/assets/icons/Icon_256x256.png`,
     // if we are in dev, we want to be able to resize the window.
     resizable: isDev,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true,
+    },
     // some css
   });
-
+  if (isDev) {
+    mainWindow.webContents.openDevTools();
+  }
   mainWindow.loadFile("./app/index.html");
 };
 const createAboutWindow = () => {
@@ -83,6 +104,33 @@ const menu = [
       ]
     : []),
 ];
+
+// Catch event
+ipcMain.on("image:minimize", (e, options) => {
+  options.dest = path.join(os.homedir(), "imageshink");
+  shrinkImage(options);
+});
+
+async function shrinkImage({ imgPath, quality, dest }) {
+  try {
+    const pngQuality = quality / 100;
+    const files = await imagemin([slash(imgPath)], {
+      destination: dest,
+      plugins: [
+        imageminMozjpeg({ quality }),
+        imageminPngquant({
+          quality: [pngQuality, pngQuality],
+        }),
+      ],
+    });
+    log.info(files);
+    shell.openPath(dest);
+    mainWindow.webContents.send("image:done");
+  } catch (error) {
+    console.log(error);
+    log.error(error);
+  }
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
